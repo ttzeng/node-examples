@@ -1,6 +1,6 @@
 var argv = process.argv,
     device = require('iotivity-node'),
-    server = device('server');
+    server = device.server;
 
 // Parse parameters from the command line
 var resourceId = 'switch';
@@ -29,18 +29,18 @@ function setProperties(properties) {
 function getRepresentation(request) {
     console.log('getRepresentation');
     ocResource.properties = getProperties();
-    request.sendResponse(ocResource).catch(handleError);
+    request.respond(ocResource).catch(handleError);
 }
 
 function setRepresentation(request) {
     console.log('setRepresentation');
-    setProperties(request.res);
+    setProperties(request.data);
 
     ocResource.properties = getProperties();
-    request.sendResponse(ocResource).catch(handleError);
+    request.respond(ocResource).catch(handleError);
 
     // Notify observers
-    server.notify(ocResource).catch(
+    ocResource.notify().catch(
         function(error) {
             console.log('Failed to notify observers: ', error);
         });
@@ -54,7 +54,7 @@ server.enablePresence().then(
     function() {
         // Register the resource
         server.register({
-            id: { path: resourceInterfaceName },
+            resourcePath: resourceInterfaceName,
             resourceTypes: [ resourceTypeName ],
             interfaces: [ 'oic.if.baseline' ],
             discoverable: true,
@@ -64,10 +64,9 @@ server.enablePresence().then(
             function(resource) {
                 console.log('register() resource successful');
                 ocResource = resource;
-                // Add event handlers
-                server.addEventListener('observerequest', getRepresentation);
-                server.addEventListener('retrieverequest', getRepresentation);
-                server.addEventListener('changerequest', setRepresentation);
+                // Register callback handlers
+                ocResource.onretrieve(getRepresentation)
+                          .onupdate(setRepresentation);
             },
             function(error) {
                 console.log('register() resource failed with: ', error);
@@ -80,13 +79,8 @@ server.enablePresence().then(
 process.on('SIGINT', function() {
     console.log('SIGINT: Delete resource...');
 
-    // Remove event listeners
-    server.removeEventListener('observerequest', getRepresentation);
-    server.removeEventListener('retrieverequest', getRepresentation);
-    server.removeEventListener('changerequest', setRepresentation);
-
     // Unregister the resource
-    server.unregister(ocResource).then(
+    ocResource.unregister().then(
         function() {
             console.log('unregister() resource successful');
         },
@@ -102,6 +96,6 @@ process.on('SIGINT', function() {
             console.log('disablePresence() failed with: ', error);
         });
 
-    process.exit(0);
+    setTimeout(function() { process.exit(0) }, 1000);
 });
 
