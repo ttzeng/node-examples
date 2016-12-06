@@ -1,5 +1,6 @@
 var argv = process.argv,
-    device = require('iotivity-node')('server'),
+    device = require('iotivity-node'),
+    server = device.server,
     debuglog = require('util').debuglog('led');
 
 // Parse parameters from command line
@@ -32,7 +33,7 @@ if (mraa) {
 function getProperties() {
     var ledValue = (led && led.read() != 0);
     var properties = {
-        rt: resourceTypeName,
+        rt: [ resourceTypeName ],
         id: resourceId,
         value: ledValue
     };
@@ -40,27 +41,24 @@ function getProperties() {
 }
 
 function setProperties(properties) {
-    var ledValue = properties.value;
+    var ledValue = properties.value? true : false;
     if (led)
         led.write(ledValue? 1 : 0);
-    debuglog('Set LED state: ', ledValue);
+    debuglog('Set LED state: ', ledValue, '(', properties.value, ')');
 }
 
 function getRepresentation(request) {
     ocResource.properties = getProperties();
-    request.sendResponse(ocResource).catch(handleError);
+    request.respond(ocResource).catch(handleError);
 }
 
 function setRepresentation(request) {
-    setProperties(request.res);
+    setProperties(request.data);
 
     ocResource.properties = getProperties();
-    request.sendResponse(ocResource).catch(handleError);
+    request.respond(ocResource).catch(handleError);
 
-    device.notify(ocResource).then(
-        function() {
-            debuglog('Successfully notified observers.');
-        },
+    ocResource.notify().catch(
         function(error) {
             debuglog('Notify failed with error: ', error);
         });
@@ -70,10 +68,10 @@ function handleError(error) {
     debuglog('LED: Fail to send response with error: ', error);
 }
 
-device.enablePresence().then(
+server.enablePresence().then(
     function() {
-        device.register({
-            id: { path: resourceInterfaceName },
+        server.register({
+            resourcePath: resourceInterfaceName,
             resourceTypes: [ resourceTypeName ],
             interfaces: [ 'oic.if.baseline' ],
             discoverable: true,
@@ -83,37 +81,34 @@ device.enablePresence().then(
             function(resource) {
                 debuglog('register() resource successful');
                 ocResource = resource;
-                device.addEventListener('observerequest', getRepresentation);
-                device.addEventListener('retrieverequest', getRepresentation);
-                device.addEventListener('changerequest', setRepresentation);
+                ocResource.onretrieve(getRepresentation)
+                          .onupdate(setRepresentation);
             },
             function(error) {
                 debuglog('register() resource failed with: ', error);
             });
     },
     function(error) {
-        debuglog('device.enablePresence() failed with: ', error);
+        debuglog('enablePresence() failed with: ', error);
     });
 
 process.on('SIGINT', function() {
-    device.removeEventListener('observerequest', getRepresentation);
-    device.removeEventListener('retrieverequest', getRepresentation);
-    device.removeEventListener('changerequest', setRepresentation);
-    device.unregister(ocResource).then(
+
+    ocResource.unregister().then(
         function() {
             debuglog('unregister() resource successful');
         },
         function(error) {
             debuglog('unregister() resource failed with: ', error);
         });
-    device.disablePresence().then(
+    server.disablePresence().then(
         function() {
-            debuglog('device.disablePresence() successful');
+            debuglog('disablePresence() successful');
         },
         function(error) {
-            debuglog('device.disablePresence() failed with: ', error);
+            debuglog('disablePresence() failed with: ', error);
         });
 
-    process.exit(0);
+    setTimeout(function() { process.exit(0) }, 1000);
 });
 

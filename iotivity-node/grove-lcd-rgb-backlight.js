@@ -13,7 +13,8 @@
 // limitations under the License.
 
 var argv = process.argv,
-    device = require('iotivity-node')('server'),
+    device = require('iotivity-node'),
+    server = device.server,
     debuglog = require('util').debuglog('rgblcd');
 
 // Parse parameters from command line
@@ -28,6 +29,15 @@ var ocResource,
     resourceInterfaceName = '/a/' + resourceId,
     range = [0, 255],
     rgbValue = [0, 0, 0];
+
+try {
+    // Due to the way node-gyp builds MRAA and UPM, the platform initialization
+    // hooks are lost, it's required to load MRAA *before* loading a UPM module
+    require('mraa');
+}
+catch (e) {
+    debuglog('No mraa module: ', e.message);
+}
 
 var upm_i2clcd;
 try {
@@ -75,7 +85,7 @@ device.platform = Object.assign(device.platform, {
 
 function getProperties() {
     var properties = {
-        rt: resourceTypeName,
+        rt: [ resourceTypeName ],
         id: resourceId,
         rgbValue: rgbValue,
         range: range
@@ -100,19 +110,16 @@ function setProperties(properties) {
 
 function getRepresentation(request) {
     ocResource.properties = getProperties();
-    request.sendResponse(ocResource).catch(handleError);
+    request.respond(ocResource).catch(handleError);
 }
 
 function setRepresentation(request) {
-    setProperties(request.res);
+    setProperties(request.data);
 
     ocResource.properties = getProperties();
-    request.sendResponse(ocResource).catch(handleError);
+    request.respond(ocResource).catch(handleError);
 
-    device.notify(ocResource).then(
-        function() {
-            debuglog('Successfully notified observers.');
-        },
+    ocResource.notify().catch(
         function(error) {
             debuglog('Notify failed with error: ', error);
         });
@@ -123,12 +130,12 @@ function handleError(error) {
 }
 
 // Enable presence
-device.enablePresence().then(
+server.enablePresence().then(
     function() {
         debuglog('Create RGB LCD resource.');
 
-        device.register({
-            id: { path: resourceInterfaceName },
+        server.register({
+            resourcePath: resourceInterfaceName,
             resourceTypes: [ resourceTypeName ],
             interfaces: [ 'oic.if.baseline' ],
             discoverable: true,
@@ -138,16 +145,15 @@ device.enablePresence().then(
             function(resource) {
                 debuglog('register() resource successful');
                 ocResource = resource;
-                device.addEventListener('observerequest', getRepresentation);
-                device.addEventListener('retrieverequest', getRepresentation);
-                device.addEventListener('changerequest', setRepresentation);
+                ocResource.onretrieve(getRepresentation)
+                          .onupdate(setRepresentation);
             },
             function(error) {
                 debuglog('register() resource failed with: ', error);
             });
     },
     function(error) {
-        debuglog('device.enablePresence() failed with: ', error);
+        debuglog('enablePresence() failed with: ', error);
     });
 
 // Cleanup on SIGINT
@@ -156,13 +162,8 @@ process.on('SIGINT', function() {
     if (lcd)
         lcd.setColor(0, 0, 0);
 
-    // Remove event listeners
-    device.removeEventListener('observerequest', getRepresentation);
-    device.removeEventListener('retrieverequest', getRepresentation);
-    device.removeEventListener('changerequest', setRepresentation);
-
     // Unregister resource
-    device.unregister(ocResource).then(
+    ocResource.unregister().then(
         function() {
             debuglog('unregister() resource successful');
         },
@@ -171,15 +172,15 @@ process.on('SIGINT', function() {
         });
 
     // Disable presence
-    device.disablePresence().then(
+    server.disablePresence().then(
         function() {
-            debuglog('device.disablePresence() successful');
+            debuglog('disablePresence() successful');
         },
         function(error) {
-            debuglog('device.disablePresence() failed with: ', error);
+            debuglog('disablePresence() failed with: ', error);
         });
 
     // Exit
-    process.exit(0);
+    setTimeout(function() { process.exit(0) }, 1000);
 });
 
