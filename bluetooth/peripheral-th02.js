@@ -109,6 +109,16 @@ function toBuffer(value, sign) {
     return buffer;
 }
 
+var lcd = null;
+try {
+    var jsupm_i2clcd = require('jsupm_i2clcd');
+    lcd = new jsupm_i2clcd.Jhd1313m1(6, 0x3E, 0x62);
+    lcd.clear();
+    lcd.setColor(128, 128, 128);
+} catch (e) {
+    debuglog('LCD display unavailable');
+}
+
 function getTemperature() {
     var temperature;
     try {
@@ -116,6 +126,12 @@ function getTemperature() {
     } catch (e) {
         debuglog('TH02 access failure: ' + e.message);
         temperature = 25.0;
+    }
+    if (lcd) {
+        lcd.setCursor(0, 0);
+        lcd.write('                ');
+        lcd.setCursor(0, 0);
+        lcd.write('T: ' + temperature.toFixed(1) + ' C');
     }
     return temperature;
 }
@@ -127,6 +143,12 @@ function getHumidity() {
     } catch (e) {
         debuglog('TH02 access failure: ' + e.message);
         humidity = 75;
+    }
+    if (lcd) {
+        lcd.setCursor(1, 0);
+        lcd.write('                ');
+        lcd.setCursor(1, 0);
+        lcd.write('H: ' + humidity.toFixed(1) + ' %');
     }
     return humidity;
 }
