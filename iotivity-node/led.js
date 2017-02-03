@@ -68,8 +68,7 @@ function handleError(error) {
     debuglog('LED: Fail to send response with error: ', error);
 }
 
-server.enablePresence().then(
-    function() {
+function enablePresence() {
         server.register({
             resourcePath: resourceInterfaceName,
             resourceTypes: [ resourceTypeName ],
@@ -87,10 +86,9 @@ server.enablePresence().then(
             function(error) {
                 debuglog('register() resource failed with: ', error);
             });
-    },
-    function(error) {
-        debuglog('enablePresence() failed with: ', error);
-    });
+}
+
+enablePresence();
 
 process.on('SIGINT', function() {
 
@@ -100,13 +98,6 @@ process.on('SIGINT', function() {
         },
         function(error) {
             debuglog('unregister() resource failed with: ', error);
-        });
-    server.disablePresence().then(
-        function() {
-            debuglog('disablePresence() successful');
-        },
-        function(error) {
-            debuglog('disablePresence() failed with: ', error);
         });
 
     setTimeout(function() { process.exit(0) }, 1000);

@@ -50,8 +50,7 @@ function handleError(error) {
     console.log('Fail to send response with error: ', error);
 }
 
-server.enablePresence().then(
-    function() {
+function enablePresence() {
         // Register the resource
         server.register({
             resourcePath: resourceInterfaceName,
@@ -71,13 +70,12 @@ server.enablePresence().then(
             function(error) {
                 console.log('register() resource failed with: ', error);
             });
-    },
-    function(error) {
-        console.log('enablePresence() failed with: ', error);
-    });
+}
 
-process.on('SIGINT', function() {
-    console.log('SIGINT: Delete resource...');
+enablePresence();
+
+function exitHandler() {
+    console.log('Delete resource...');
 
     // Unregister the resource
     ocResource.unregister().then(
@@ -87,15 +85,11 @@ process.on('SIGINT', function() {
         function(error) {
             console.log('unregister() resource failed with: ', error);
         });
-    // Disable presence
-    server.disablePresence().then(
-        function() {
-            console.log('disablePresence() successful');
-        },
-        function(error) {
-            console.log('disablePresence() failed with: ', error);
-        });
 
     setTimeout(function() { process.exit(0) }, 1000);
-});
+}
+
+// Exit gracefully
+process.on('SIGINT', exitHandler);
+process.on('SIGTERM', exitHandler);
 

@@ -130,8 +130,7 @@ function handleError(error) {
 }
 
 // Enable presence
-server.enablePresence().then(
-    function() {
+function enablePresence() {
         debuglog('Create RGB LCD resource.');
 
         server.register({
@@ -151,10 +150,9 @@ server.enablePresence().then(
             function(error) {
                 debuglog('register() resource failed with: ', error);
             });
-    },
-    function(error) {
-        debuglog('enablePresence() failed with: ', error);
-    });
+}
+
+enablePresence();
 
 // Cleanup on SIGINT
 process.on('SIGINT', function() {
@@ -169,15 +167,6 @@ process.on('SIGINT', function() {
         },
         function(error) {
             debuglog('unregister() resource failed with: ', error);
-        });
-
-    // Disable presence
-    server.disablePresence().then(
-        function() {
-            debuglog('disablePresence() successful');
-        },
-        function(error) {
-            debuglog('disablePresence() failed with: ', error);
         });
 
     // Exit

@@ -32,13 +32,19 @@ function foundResource(resource) {
         if (resource.observable) {
             resource.addListener('update', observeResource);
             resource.addListener('delete', deleteResource);
+            resource.addListener('error' , serverError);
         }
     }
 }
 
+function serverError(error) {
+    console.log("Server return error:", error.message);
+}
+
 function discoverResource() {
     console.log('Discover resources...');
-    client.findResources(foundResource).then(
+    client.on("error", serverError)
+          .findResources(foundResource).then(
         function() {
             console.log('findResources() successful');
             resourceFound = {};
