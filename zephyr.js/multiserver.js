@@ -3,6 +3,7 @@
  *     +-----------------------------------+
  *     | Sensor                     | Port |
  *     +----------------------------+------+
+ *     | Onchip BMI160 temperature  |  --  |
  *     | Grove PIR motion sensor    |  D2  |
  *     | Grove button               |  D4  |
  *     | Grove buzzer               |  D7  |
@@ -11,6 +12,30 @@
 var gpio   = require('gpio');
 var ocf    = require('ocf');
 var server = ocf.server;
+
+var updateTemperatureFrequency = 1;  /* desire frequency in Hz */
+
+// BMI160 Temperature Sensor
+// http://www.mouser.com/ds/2/783/BST-BMI160-DS000-07-786474.pdf
+var temperatureSensor = new TemperatureSensor({
+        controller: 'bmi160',
+        frequency : updateTemperatureFrequency
+    }),
+    resPathTemperature = '/a/temperature',
+    resTypeTemperature = 'oic.r.temperature',
+    temperatureResource = null,
+    temperatureProperties = {
+        temperature: 25.0,
+        units: 'C'
+    },
+    temperatureResourceInit = {
+        resourcePath : resPathTemperature,
+        resourceTypes: [ resTypeTemperature ],
+        interfaces   : [ 'oic.if.baseline' ],
+        discoverable : true,
+        observable   : false,
+        properties   : temperatureProperties
+    };
 
 // PIR Motion Sensor
 var PIR = gpio.open({ pin: 2, mode: 'in', edge: 'any' }),
@@ -66,6 +91,20 @@ var buzzer = gpio.open({ pin: 7, mode: 'out', activeLow: false }),
 console.log('Starting Multiple OCF servers...');
 
 // Event Handlers
+temperatureSensor.onchange = function() {
+    var temperature = temperatureSensor.celsius;
+    console.log('temperature: ' + temperature + '°C');
+    temperatureProperties.temperature = temperature;
+};
+
+temperatureSensor.onactivate = function() {
+    console.log('temperature sensor activated');
+};
+
+temperatureSensor.onerror = function(event) {
+    console.log('exception occurs: ' + event.error.name + ' - ' + event.error.message);
+};
+
 PIR.onchange = function(event) {
     var state = PIR.read();
     console.log('motion: ' + state);
@@ -76,6 +115,10 @@ button.onchange = function(event) {
     console.log('button: ' + event.value);
     buttonProperties.value = event.value;
 };
+
+function getTemperatureRepresentation(request) {
+    request.respond(temperatureProperties);
+}
 
 function getMotionOcRepresentation(request) {
     request.respond(motionProperties);
@@ -99,6 +142,13 @@ function setBuzzerOcRepresentation(request) {
 }
 
 // Resource Registration
+server.register(temperatureResourceInit).then(function(resource) {
+    console.log("Temperature sensor registered");
+    temperatureResource = resource;
+}).catch(function(error) {
+    console.log('Registration failure: ' + error.name);
+});
+
 server.register(motionResourceInit).then(function(resource) {
     console.log("Motion sensor registered");
     motionResource = resource;
@@ -128,6 +178,8 @@ server.on('retrieve', function(request, observe) {
         getButtonOcRepresentation(request);
     } else if (request.target.resourcePath == resPathBuzzer) {
         getBuzzerOcRepresentation(request);
+    } else if (request.target.resourcePath == resPathTemperature) {
+        getTemperatureRepresentation(request);
     }
 });
 
@@ -136,6 +188,9 @@ server.on('update', function(request) {
         setBuzzerOcRepresentation(request);
     }
 });
+
+/* Start the sensor instance and emit events */
+temperatureSensor.start();
 
 /* Start the OCF stack */
 ocf.start();
