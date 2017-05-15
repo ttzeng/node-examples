@@ -7,6 +7,7 @@
  *     | Grove PIR motion sensor    |  D2  |
  *     | Grove button               |  D4  |
  *     | Grove buzzer               |  D7  |
+ *     | Grove mini fan             |  D8  |
  *     +----------------------------+------+
  */
 var gpio   = require('gpio');
@@ -88,6 +89,23 @@ var buzzer = gpio.open({ pin: 7, mode: 'out', activeLow: false }),
         properties   : buzzerProperties
     };
 
+// Mini Fan
+var fan = gpio.open({ pin: 8, mode: 'out', activeLow: false }),
+    resPathFan = '/a/fan',
+    resTypeFan = 'oic.r.fan',
+    fanResource = null,
+    fanProperties = {
+        value: fan.read()? true : false
+    },
+    fanResourceInit = {
+        resourcePath : resPathFan,
+        resourceTypes: [ resTypeFan ],
+        interfaces   : [ 'oic.if.baseline' ],
+        discoverable : true,
+        observable   : true,
+        properties   : fanProperties
+    };
+
 console.log('Starting Multiple OCF servers...');
 
 // Event Handlers
@@ -142,6 +160,19 @@ function setBuzzerOcRepresentation(request) {
     request.respond(buzzerProperties);
 }
 
+function getFanOcRepresentation(request) {
+    request.respond(fanProperties);
+}
+
+function setFanOcRepresentation(request) {
+    if (request.resource.properties) {
+        var state = request.resource.properties.value? true : false;
+        console.log('Fan ' + (state? 'On' : 'Off'));
+        fan.write(fanProperties.value = state);
+    }
+    request.respond(fanProperties);
+}
+
 // Resource Registration
 server.register(temperatureResourceInit).then(function(resource) {
     console.log("Temperature sensor registered");
@@ -171,6 +202,13 @@ server.register(buzzerResourceInit).then(function(resource) {
     console.log('Buzzer registration failure: ' + error.name);
 });
 
+server.register(fanResourceInit).then(function(resource) {
+    console.log("Fan registered");
+    fanResource = resource;
+}).catch(function(error) {
+    console.log('Fan registration failure: ' + error.name);
+});
+
 // Register Listeners
 server.on('retrieve', function(request, observe) {
     if (request.target.resourcePath == resPathMotion) {
@@ -181,12 +219,16 @@ server.on('retrieve', function(request, observe) {
         getBuzzerOcRepresentation(request);
     } else if (request.target.resourcePath == resPathTemperature) {
         getTemperatureRepresentation(request);
+    } else if (request.target.resourcePath == resPathFan) {
+        getFanOcRepresentation(request);
     }
 });
 
 server.on('update', function(request) {
     if (request.target.resourcePath == resPathBuzzer) {
         setBuzzerOcRepresentation(request);
+    } else if (request.target.resourcePath == resPathFan) {
+        setFanOcRepresentation(request);
     }
 });
 
