@@ -43,7 +43,7 @@ var PIR = gpio.open({ pin: 2, mode: 'in', edge: 'any' }),
     resTypeMotion = 'oic.r.sensor.motion',
     motionResource = null,
     motionProperties = {
-        value: PIR.read()
+        value: PIR.read()? true : false
     },
     motionResourceInit = {
         resourcePath : resPathMotion,
@@ -60,7 +60,7 @@ var button = gpio.open({ pin: 4, mode: 'in', edge: 'any' }),
     resTypeButton = 'oic.r.button',
     buttonResource = null,
     buttonProperties = {
-        value: button.read()
+        value: button.read()? true : false
     },
     buttonResourceInit = {
         resourcePath : resPathButton,
@@ -77,7 +77,7 @@ var buzzer = gpio.open({ pin: 7, mode: 'out', activeLow: false }),
     resTypeBuzzer = 'oic.r.buzzer',
     buzzerResource = null,
     buzzerProperties = {
-        value: buzzer.read()
+        value: buzzer.read()? true : false
     },
     buzzerResourceInit = {
         resourcePath : resPathBuzzer,
@@ -106,14 +106,15 @@ temperatureSensor.onerror = function(event) {
 };
 
 PIR.onchange = function(event) {
-    var state = PIR.read();
+    var state = PIR.read()? true : false;
     console.log('motion: ' + state);
     motionProperties.value = state;
 };
 
 button.onchange = function(event) {
-    console.log('button: ' + event.value);
-    buttonProperties.value = event.value;
+    var state = event.value? true : false;
+    console.log('button: ' + state);
+    buttonProperties.value = state;
 };
 
 function getTemperatureRepresentation(request) {

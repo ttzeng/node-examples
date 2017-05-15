@@ -6,7 +6,7 @@ var gpio  = require('gpio'),
 
 var ledResource,
     ledProperties = {
-        value: led.read()
+        value: led.read()? true : false
     },
     ledResourceInit = {
         resourcePath : '/a/led',
