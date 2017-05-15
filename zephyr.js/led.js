@@ -1,9 +1,8 @@
 var ocf = require('ocf');
 var server = ocf.server;
 
-var board = require('arduino101_pins'),
-    gpio  = require('gpio'),
-    led   = gpio.open({ pin: board.LED2, direction: 'out', activeLow: false });
+var gpio  = require('gpio'),
+    led   = gpio.open({ pin: 'LED2', mode: 'out', activeLow: false });
 
 var ledResource,
     ledProperties = {

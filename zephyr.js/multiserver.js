@@ -8,13 +8,12 @@
  *     | Grove buzzer               |  D7  |
  *     +----------------------------+------+
  */
-var board  = require('arduino101_pins');
 var gpio   = require('gpio');
 var ocf    = require('ocf');
 var server = ocf.server;
 
 // PIR Motion Sensor
-var PIR = gpio.open({ pin: board.IO2, direction: 'in', edge: 'any' }),
+var PIR = gpio.open({ pin: 2, mode: 'in', edge: 'any' }),
     resPathMotion = '/a/pir',
     resTypeMotion = 'oic.r.sensor.motion',
     motionResource = null,
@@ -31,7 +30,7 @@ var PIR = gpio.open({ pin: board.IO2, direction: 'in', edge: 'any' }),
     };
 
 // Button
-var button = gpio.open({ pin: board.IO4, direction: 'in', edge: 'any' }),
+var button = gpio.open({ pin: 4, mode: 'in', edge: 'any' }),
     resPathButton = '/a/button',
     resTypeButton = 'oic.r.button',
     buttonResource = null,
@@ -48,7 +47,7 @@ var button = gpio.open({ pin: board.IO4, direction: 'in', edge: 'any' }),
     };
 
 // Buzzer
-var buzzer = gpio.open({ pin: board.IO7, direction: 'out', activeLow: false }),
+var buzzer = gpio.open({ pin: 7, mode: 'out', activeLow: false }),
     resPathBuzzer = '/a/buzzer',
     resTypeBuzzer = 'oic.r.buzzer',
     buzzerResource = null,
