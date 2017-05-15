@@ -8,9 +8,11 @@
  *     | Grove button               |  D4  |
  *     | Grove buzzer               |  D7  |
  *     | Grove mini fan             |  D8  |
+ *     | Grove light sensor         |  A0  |
  *     +----------------------------+------+
  */
 var gpio   = require('gpio');
+var board  = require("arduino101_pins");
 var ocf    = require('ocf');
 var server = ocf.server;
 
@@ -106,6 +108,25 @@ var fan = gpio.open({ pin: 8, mode: 'out', activeLow: false }),
         properties   : fanProperties
     };
 
+// Light sensor
+var lightSensor = new AmbientLightSensor({
+        pin: board.A0
+    }),
+    resPathIlluminance = '/a/illuminance',
+    resTypeIlluminance = 'oic.r.sensor.illuminance',
+    illuminanceResource = null,
+    illuminanceProperties = {
+        illuminance: 450.0
+    },
+    illuminanceResourceInit = {
+        resourcePath : resPathIlluminance,
+        resourceTypes: [ resTypeIlluminance ],
+        interfaces   : [ 'oic.if.baseline' ],
+        discoverable : true,
+        observable   : true,
+        properties   : illuminanceProperties
+    };
+
 console.log('Starting Multiple OCF servers...');
 
 // Event Handlers
@@ -120,6 +141,20 @@ temperatureSensor.onactivate = function() {
 };
 
 temperatureSensor.onerror = function(event) {
+    console.log('exception occurs: ' + event.error.name + ' - ' + event.error.message);
+};
+
+lightSensor.onchange = function() {
+    var illuminance = lightSensor.illuminance;
+    console.log('illuminance: ' + illuminance);
+    illuminanceProperties.illuminance = illuminance;
+};
+
+lightSensor.onactivate = function() {
+    console.log('light sensor activated');
+};
+
+lightSensor.onerror = function(event) {
     console.log('exception occurs: ' + event.error.name + ' - ' + event.error.message);
 };
 
@@ -173,6 +208,10 @@ function setFanOcRepresentation(request) {
     request.respond(fanProperties);
 }
 
+function getIlluminanceOcRepresentation(request) {
+    request.respond(illuminanceProperties);
+}
+
 // Resource Registration
 server.register(temperatureResourceInit).then(function(resource) {
     console.log("Temperature sensor registered");
@@ -209,6 +248,13 @@ server.register(fanResourceInit).then(function(resource) {
     console.log('Fan registration failure: ' + error.name);
 });
 
+server.register(illuminanceResourceInit).then(function(resource) {
+    console.log("Light sensor registered");
+    illuminanceResource = resource;
+}).catch(function(error) {
+    console.log('Light sensor registration failure: ' + error.name);
+});
+
 // Register Listeners
 server.on('retrieve', function(request, observe) {
     if (request.target.resourcePath == resPathMotion) {
@@ -221,6 +267,8 @@ server.on('retrieve', function(request, observe) {
         getTemperatureRepresentation(request);
     } else if (request.target.resourcePath == resPathFan) {
         getFanOcRepresentation(request);
+    } else if (request.target.resourcePath == resPathIlluminance) {
+        getIlluminanceOcRepresentation(request);
     }
 });
 
@@ -234,6 +282,7 @@ server.on('update', function(request) {
 
 /* Start the sensor instance and emit events */
 temperatureSensor.start();
+lightSensor.start();
 
 /* Start the OCF stack */
 ocf.start();
