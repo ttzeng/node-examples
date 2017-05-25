@@ -73,11 +73,84 @@ function readHumidity(cb) {
     }
 }
 
+/*
+ * Export sensed temperature & humidity through BLE Environmental Sensing Service (ESS)
+ */
+var ble  = require('ble'),
+    name = 'Thermostat (TH02)',
+    uuidServiceEnvironmentalSensing = '181a';
+
+var temperature = 25.0,
+    temperatureCharacteristic = new ble.Characteristic({
+        // org.bluetooth.characteristic.temperature
+        uuid: '2a6e',
+        properties: [ 'read' ],
+        onReadRequest: function(offset, callback) {
+            console.log('Temperature: ' + temperature + '°C');
+            callback(this.RESULT_SUCCESS, toBuffer(temperature * 100, true));
+        },
+    });
+
+var humidity = 75,
+    humidityCharacteristic = new ble.Characteristic({
+        // org.bluetooth.characteristic.humidity
+        uuid: '2a6f',
+        properties: [ 'read' ],
+        onReadRequest: function(offset, callback) {
+            console.log('Humidity: ' + humidity + '%');
+            callback(this.RESULT_SUCCESS, toBuffer(humidity * 100, false));
+        },
+    });
+
+function toBuffer(value, sign) {
+    var buffer = new Buffer(2);
+    // The ZJS Buffer API currently only supports unsigned integers
+    if (sign == true && value < 0)
+        value += 65536;
+    buffer.writeUInt16LE(value);
+    return buffer;
+}
+
+ble.on('stateChange', function(state) {
+    console.log('State change: ' + state);
+    if (state === 'poweredOn') {
+        ble.startAdvertising(name, [ uuidServiceEnvironmentalSensing ]);
+    }
+});
+
+ble.on('advertisingStart', function(error) {
+    if (error) {
+        console.log('Advertising error: ' + error);
+    } else {
+        ble.setServices([
+            new ble.PrimaryService({
+                // Environmental Sensing Service (ESS)
+                uuid: uuidServiceEnvironmentalSensing,
+                characteristics: [
+                    temperatureCharacteristic,
+                    humidityCharacteristic
+                ]
+            })
+        ]);
+        console.log('Advertising start success');
+    }
+});
+
+ble.on('accept', function(clientAddress) {
+    console.log('Accepted connection from ' + clientAddress);
+});
+
+ble.on('disconnect', function(clientAddress) {
+    console.log('Disconnected from ' + clientAddress);
+});
+
 setInterval(function() {
     readTemperature(function(temperature) {
         console.log('temperature: ' + temperature);
+        this.temperature = temperature;
     });
     setTimeout(readHumidity, 1000, function(humidity) {
         console.log('humidity: ' + humidity);
+        this.humidity = humidity;
     });
 }, 2000);
