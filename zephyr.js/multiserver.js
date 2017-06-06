@@ -12,7 +12,7 @@
  *     +----------------------------+------+
  */
 var gpio   = require('gpio');
-var board  = require("arduino101_pins");
+var board  = require('arduino101_pins');
 var ocf    = require('ocf');
 var server = ocf.server;
 
