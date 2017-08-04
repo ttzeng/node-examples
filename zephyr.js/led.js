@@ -28,8 +28,8 @@ function getOcRepresentation(request, observe) {
 }
 
 function setOcRepresentation(request) {
-    if (request.resource.properties) {
-        var state = request.resource.properties.value? true : false;
+    if (request.data.properties) {
+        var state = request.data.properties.value? true : false;
         console.log('Set LED state: ' + state);
         led.write(ledProperties.value = state);
     }

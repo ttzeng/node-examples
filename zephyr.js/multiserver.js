@@ -187,8 +187,8 @@ function getBuzzerOcRepresentation(request) {
 }
 
 function setBuzzerOcRepresentation(request) {
-    if (request.resource.properties) {
-        var state = request.resource.properties.value? true : false;
+    if (request.data.properties) {
+        var state = request.data.properties.value? true : false;
         console.log('Set buzzer ' + (state? 'On' : 'Off'));
         buzzer.write(buzzerProperties.value = state);
     }
@@ -200,8 +200,8 @@ function getFanOcRepresentation(request) {
 }
 
 function setFanOcRepresentation(request) {
-    if (request.resource.properties) {
-        var state = request.resource.properties.value? true : false;
+    if (request.data.properties) {
+        var state = request.data.properties.value? true : false;
         console.log('Fan ' + (state? 'On' : 'Off'));
         fan.write(fanProperties.value = state);
     }
