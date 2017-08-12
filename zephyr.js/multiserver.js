@@ -46,7 +46,7 @@ var PIR = gpio.open({ pin: 2, mode: 'in', edge: 'any' }),
     resTypeMotion = 'oic.r.sensor.motion',
     motionResource = null,
     motionProperties = {
-        value: PIR.read()? true : false
+        value: (PIR.read() != 0)? true : false
     },
     motionResourceInit = {
         resourcePath : resPathMotion,
@@ -63,7 +63,7 @@ var button = gpio.open({ pin: 4, mode: 'in', edge: 'any' }),
     resTypeButton = 'oic.r.button',
     buttonResource = null,
     buttonProperties = {
-        value: button.read()? true : false
+        value: (button.read() != 0)? true : false
     },
     buttonResourceInit = {
         resourcePath : resPathButton,
@@ -80,7 +80,7 @@ var buzzer = gpio.open({ pin: 7, mode: 'out', activeLow: false }),
     resTypeBuzzer = 'oic.r.buzzer',
     buzzerResource = null,
     buzzerProperties = {
-        value: buzzer.read()? true : false
+        value: (buzzer.read() != 0)? true : false
     },
     buzzerResourceInit = {
         resourcePath : resPathBuzzer,
@@ -97,7 +97,7 @@ var fan = gpio.open({ pin: 8, mode: 'out', activeLow: false }),
     resTypeFan = 'oic.r.fan',
     fanResource = null,
     fanProperties = {
-        value: fan.read()? true : false
+        value: (fan.read() != 0)? true : false
     },
     fanResourceInit = {
         resourcePath : resPathFan,
@@ -159,7 +159,7 @@ lightSensor.onerror = function(event) {
 };
 
 PIR.onchange = function(event) {
-    var state = PIR.read()? true : false;
+    var state = (PIR.read() != 0)? true : false;
     console.log('motion: ' + state);
     motionProperties.value = state;
 };
@@ -190,7 +190,7 @@ function setBuzzerOcRepresentation(request) {
     if (request.data.properties) {
         var state = request.data.properties.value? true : false;
         console.log('Set buzzer ' + (state? 'On' : 'Off'));
-        buzzer.write(buzzerProperties.value = state);
+        buzzer.write((buzzerProperties.value = state)? 1 : 0);
     }
     request.respond(buzzerProperties);
 }
@@ -203,7 +203,7 @@ function setFanOcRepresentation(request) {
     if (request.data.properties) {
         var state = request.data.properties.value? true : false;
         console.log('Fan ' + (state? 'On' : 'Off'));
-        fan.write(fanProperties.value = state);
+        fan.write((fanProperties.value = state)? 1 : 0);
     }
     request.respond(fanProperties);
 }

@@ -6,7 +6,7 @@ var gpio  = require('gpio'),
 
 var ledResource,
     ledProperties = {
-        value: led.read()? true : false
+        value: (led.read() != 0)? true : false
     },
     ledResourceInit = {
         resourcePath : '/a/led',
@@ -31,7 +31,7 @@ function setOcRepresentation(request) {
     if (request.data.properties) {
         var state = request.data.properties.value? true : false;
         console.log('Set LED state: ' + state);
-        led.write(ledProperties.value = state);
+        led.write((ledProperties.value = state)? 1 : 0);
     }
     request.respond(ledProperties);
 }

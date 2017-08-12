@@ -22,7 +22,7 @@ var led = gpio.open({ pin: 'LED2', mode: 'out', activeLow: false }),
     resTypeLed = 'oic.r.switch.binary',
     ledResource = null,
     ledProperties = {
-        value: led.read()? true : false
+        value: (led.read() != 0)? true : false
     },
     ledResourceInit = {
         resourcePath : '/a/led',
@@ -41,7 +41,7 @@ function setLedOcRepresentation(request) {
     if (request.data.properties) {
         var state = request.data.properties.value? true : false;
         console.log('Set LED state: ' + state);
-        led.write(ledProperties.value = state);
+        led.write((ledProperties.value = state)? 1 : 0);
     }
     request.respond(ledProperties);
 }
