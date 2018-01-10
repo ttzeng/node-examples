@@ -17,6 +17,11 @@ var argv = process.argv,
     server = device.server,
     debuglog = require('util').debuglog('rgblcd');
 
+device.device = Object.assign(device.device, {
+    coreSpecVersion: 'ocf.1.1.0',
+    dataModels: ['res.1.1.0']
+});
+
 // Parse parameters from command line
 // Usage: node lcd.js [<id>]
 var resourceId = 'rgblcd';
